@@ -1,0 +1,90 @@
+version: "3.9"
+
+services:
+  mongo:
+    image: mongo:6
+    container_name: msa-mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  redis:
+    image: redis:7-alpine
+    container_name: msa-redis
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    ports:
+      - "4001:4001"
+    environment:
+      - PORT=4001
+      - MONGO_URI=mongodb://mongo:27017/auth_db
+      - JWT_ACCESS_SECRET=access_secret_dev
+      - JWT_REFRESH_SECRET=refresh_secret_dev
+    depends_on:
+      - mongo
+
+  user-service:
+    build: ./user-service
+    container_name: user-service
+    ports:
+      - "4002:4002"
+    environment:
+      - PORT=4002
+      - MONGO_URI=mongodb://mongo:27017/user_db
+      - JWT_ACCESS_SECRET=access_secret_dev
+    depends_on:
+      - mongo
+
+  product-service:
+    build: ./product-service
+    container_name: product-service
+    ports:
+      - "4003:4003"
+    environment:
+      - PORT=4003
+      - MONGO_URI=mongodb://mongo:27017/product_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_ACCESS_SECRET=access_secret_dev
+      - CORS_WHITELIST=http://localhost:3000,http://localhost:8080
+    depends_on:
+      - mongo
+      - redis
+
+  cart-service:
+    build: ./cart-service
+    container_name: cart-service
+    ports:
+      - "4004:4004"
+    environment:
+      - PORT=4004
+      - MONGO_URI=mongodb://mongo:27017/cart_db
+      - JWT_ACCESS_SECRET=access_secret_dev
+      - PRODUCT_SERVICE_URL=http://product-service:4003
+    depends_on:
+      - mongo
+      - product-service
+
+  gateway:
+    build: ./gateway
+    container_name: api-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      - PORT=4000
+      - AUTH_SERVICE_URL=http://auth-service:4001
+      - USER_SERVICE_URL=http://user-service:4002
+      - PRODUCT_SERVICE_URL=http://product-service:4003
+      - CART_SERVICE_URL=http://cart-service:4004
+    depends_on:
+      - auth-service
+      - user-service
+      - product-service
+      - cart-service
+
+volumes:
+  mongo-data:

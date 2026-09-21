@@ -1,0 +1,31 @@
+name: CI - product-service
+
+on:
+  push:
+    paths:
+      - 'product-service/**'
+  pull_request:
+    paths:
+      - 'product-service/**'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./product-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: product-service/package-lock.json
+      - name: Install dependencies
+        run: npm install
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Run tests with coverage
+        run: npm test -- --coverage
+      - name: Build Docker image
+        run: docker build -t product-service:ci .

@@ -1,0 +1,31 @@
+name: CI - auth-service
+
+on:
+  push:
+    paths:
+      - 'auth-service/**'
+  pull_request:
+    paths:
+      - 'auth-service/**'
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./auth-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: auth-service/package-lock.json
+      - name: Install dependencies
+        run: npm install
+      - name: Lint
+        run: npm run lint --if-present
+      - name: Run tests with coverage
+        run: npm test -- --coverage
+      - name: Build Docker image
+        run: docker build -t auth-service:ci .

@@ -1,0 +1,17 @@
+require('dotenv').config();
+const createApp = require('./app');
+const connectDB = require('./config/db');
+
+const PORT = process.env.PORT || 4002;
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/user_db';
+
+async function start() {
+  await connectDB(MONGO_URI);
+  const app = createApp();
+  app.listen(PORT, () => console.log(`user-service listening on port ${PORT}`));
+}
+
+start().catch((err) => {
+  console.error('Failed to start user-service', err);
+  process.exit(1);
+});
